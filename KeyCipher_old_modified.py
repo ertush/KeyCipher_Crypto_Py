@@ -80,10 +80,7 @@ def encryptDecryptString(mode,key,str,keyMode):
 def encodedecodeFile(mode,key,file,savePath,keyMode):
     with open(file) as f:
         filename = savePath #raw_input("\n[*]Enter path to save the (encrypted\decrypted) file : ")
-        print(filename)
-        #if filename == "":
-            #filename="C:\Users\Dell\Desktop\enc.txt"
-
+        print(filename)   
         if '~/' in filename:
             filename = filename.replace('~/','')
         elif '\\' in  filename:
