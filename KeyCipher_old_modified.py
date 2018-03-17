@@ -1,7 +1,4 @@
 #!/usr/bin/python
-#!C:\\Python36\\python.exe
-
-#import pyperclip
 
 import sys,string,os
 import random as rd
