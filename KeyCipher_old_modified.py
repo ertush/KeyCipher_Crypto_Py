@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/ env python
 
 import sys,string,os
 import random as rd
@@ -10,7 +10,7 @@ STRING = 3
 PATHTOSAVE = 4
 KEYMODE = 5
 
-LETTERS = string.letters+string.digits+string.punctuation #string.ascii_letters+string.digits+string.punctuation #string.printable.replace(' \t\n\r'+'\x0b\x0c', '') #string.ascii_letters+string.digits+string.punctuation  
+LETTERS = string.letters+string.digits+string.punctuation 
 
 def encryptDecryptString(mode,key,str,keyMode):
    
@@ -27,7 +27,7 @@ def encryptDecryptString(mode,key,str,keyMode):
                 encStrings.append(str)
 
             if encStrings[len(encStrings) - 1]:
-                #print "{}".format(encStrings[len(encStrings) - 1])
+                
                 return (encStrings[len(encStrings) - 1])
                 exit()
            
@@ -72,11 +72,10 @@ def encryptDecryptString(mode,key,str,keyMode):
     if mode == "decrypt":
         return trans
           
-    #pyperclip.copy(trans.lower())
 
 def encodedecodeFile(mode,key,file,savePath,keyMode):
     with open(file) as f:
-        filename = savePath #raw_input("\n[*]Enter path to save the (encrypted\decrypted) file : ")
+        filename = savePath 
         print(filename)   
         if '~/' in filename:
             filename = filename.replace('~/','')
@@ -89,11 +88,10 @@ def encodedecodeFile(mode,key,file,savePath,keyMode):
             elif keyMode == 'decrypt':    
                 line = bs.b64decode(line)            
             encline = encryptDecryptString(mode,key,line,keyMode)
-
             with open(filename,'a') as encf:
                 last1Byte = encline[len(encline)-1:len(encline)] 
-                encf.write(encline.replace(last1Byte, ''))
-                #encf.write(encline)
+                encf.write((encline.replace(last1Byte, ''))+'\n')
+                
                 
 def KeyString(key):
     key = key.__str__()
