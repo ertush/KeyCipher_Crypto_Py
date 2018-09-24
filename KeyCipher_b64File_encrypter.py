@@ -27,7 +27,7 @@ def encryptDecryptString(mode,key,str,keyMode):
                 encStrings.append(str)
 
             if encStrings[len(encStrings) - 1]:
-                #print "{}".format(encStrings[len(encStrings) - 1])
+               
                 return (encStrings[len(encStrings) - 1])
                 exit()
         else:
@@ -69,21 +69,21 @@ def encryptDecryptString(mode,key,str,keyMode):
     if mode == "decrypt":
         return trans
           
-    #pyperclip.copy(trans.lower())
+    
 
 def encodedecodeFile(mode,key,file,savePath,keyMode):
     with open(file) as f:
-        filename = savePath #raw_input("\n[*]Enter path to save the (encrypted\decrypted) file : ")
+        filename = savePath 
         print(filename)
-        #if filename == "":
-            #filename="C:\Users\Dell\Desktop\enc.txt"
+        
+            
 
         if '~/' in filename:
             filename = filename.replace('~/','')
         elif '\\' in  filename:
             filename = filename.replace('\\',"\\")
-        #print ("\n{}:").format(filename.upper())
-        #print ({}).format(('='*len(filename)))
+        
+        
         for line in f.readlines():
             if keyMode == 'encrypt':
                 line = bs.b64encode(line)
@@ -94,7 +94,7 @@ def encodedecodeFile(mode,key,file,savePath,keyMode):
             with open(filename,'a') as encf:
                 last1Byte = encline[len(encline)-1:len(encline)] 
                 encf.write(encline.replace(last1Byte, ''))
-                #encf.write(encline)
+                
                 
 def KeyString(key):
     key = key.__str__()
