@@ -73,7 +73,7 @@ def encryptDecryptString(mode,key,str,keyMode):
     if mode == "decrypt":
         return trans
           
-    #pyperclip.copy(trans.lower())
+    
 
 def encodedecodeFile(mode,key,file,keyMode):
     with open(file) as f:
