@@ -33,9 +33,9 @@ def encryptDecryptString(mode,key,str,keyMode):
         else:
             try:
                 enstr = encryptDecryptString(mode,key,str,keyMode)
-                print ("{}").format(enstr)
+                print ("{}".format(enstr))
             except RuntimeError as e:
-                print ("[!] Encountered : {}\n[*] Avoid using single line ('-n') encryption with key of > 2 digits").format(e)
+                print ("[!] Encountered : {}\n[*] Avoid using single line ('-n') encryption with key of > 2 digits".format(e))
                 exit()
 
     key = int(key)
