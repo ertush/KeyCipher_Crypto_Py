@@ -1,5 +1,5 @@
 ## KeyCipher_Crypto_Py
-** A file encrypting and password generation tool written in python.
+ A file encrypting and password generation tool written in python.
   supports multiple Key Encryption.
 
 
