@@ -120,15 +120,16 @@ def KeyString(key):
     keys = ""
     return keys.join(keylist)
  
-        
+def usage():
+    print "\nUsage: KeyCipher [OPTIONS] [<int> | <string> KEY] [STRING] -m\n"
+    print "OPTIONS\t\tDEFINATION\n"
+    print "=======\t\t==========\n"
+    print "--encrypt\tMode for encryption\n--decrypt\tMode for decryption\n--help\t\tDisplay help message\n--keyMode\tMultiple key encryption <'-m'>\n"
+
         
 if __name__ == "__main__":
     if len(sys.argv) != 5:
-        print "\nUsage: KeyCipher [OPTIONS] [<int> | <string> KEY] [STRING] -m\n"
-        print "OPTIONS\t\tDEFINATION\n"
-        print "=======\t\t==========\n"
-        print "--encrypt\tMode for encryption\n--decrypt\tMode for decryption\n--help\t\tDisplay help message\n--keyMode\tMultiple key encryption <'-m'>\n"
-
+        usage() 
         exit()
     if sys.argv[MODE] == '--encrypt':
         try:
@@ -147,10 +148,7 @@ if __name__ == "__main__":
             encodedecodeFile("decrypt",KeyString(sys.argv[KEY]),sys.argv[STRING],sys.argv[KEYMODE])
         encryptDecryptString("decrypt",KeyString(sys.argv[KEY]),sys.argv[STRING],sys.argv[KEYMODE])
     else:
-        print "\nUsage: KeyCipher [OPTIONS] [<int> | <string> KEY] [STRING] -m\n"
-        print "OPTIONS\t\tDEFINATION\n"
-        print "=======\t\t==========\n"
-        print "--encrypt\tMode for encryption\n--decrypt\tMode for decryption\n--help\t\tDisplay help message\n--KeyMode\tMultiple Key encryption <'-m'>\n" 
+        usage() 
         exit()
         
         
