@@ -11,7 +11,17 @@ STRING = 3
 KEY = 2
 MODE = 1
 KEYMODE = 4
-LETTERS = string.letters+string.digits+string.punctuation
+
+# Omitting some special chars that have a trouble with powershell
+special_chars = ['\'','\"','(',')','{','}','$','`'] 
+
+punctuation = string.punctuation
+
+for char in special_chars:
+    punctuation = punctuation.replace(char, '')
+
+# Alphanumerals [a-z:A-Z:0-9:all_special_chars]
+LETTERS = string.letters+string.digits+punctuation
 
 def encryptDecryptString(mode,key,str,keyMode):
    
@@ -31,9 +41,7 @@ def encryptDecryptString(mode,key,str,keyMode):
                 print "{}".format(encStrings[len(encStrings) - 1])
                 return (encStrings[len(encStrings) - 1])
                 exit()
-           
-                   
-                   
+         
         else:
             try:
                 enstr = encryptDecryptString(mode,key,str,keyMode)
@@ -115,7 +123,7 @@ def KeyString(key):
         
         
 if __name__ == "__main__":
-    if len(sys.argv) <> 5:
+    if len(sys.argv) != 5:
         print "\nUsage: KeyCipher [OPTIONS] [<int> | <string> KEY] [STRING] -m\n"
         print "OPTIONS\t\tDEFINATION\n"
         print "=======\t\t==========\n"

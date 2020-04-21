@@ -637,7 +637,7 @@ def b16decode(s, casefold=False):
 # binascii has any line length limitations.  It just doesn't seem worth it
 # though.
 
-MAXLINESIZE = 76 # Excluding the CRLF
+MAXLINESIZE = 64 # Excluding the CRLF // Initially 76
 MAXBINSIZE = (MAXLINESIZE//4)*3
 
 def encode(input, output):
