@@ -43,7 +43,7 @@ function Invoke-KeyCipher(){
 		$outFilePath = $(	 
 							 # Checking mode parameter
 							 if($($mode -eq "hash") -or $($mode -eq "unhash")){
-								 return ''
+								 return '-'
 							 }
 							 else
 							 { 
@@ -54,7 +54,7 @@ function Invoke-KeyCipher(){
 								mkdir $defaultOutPath
 							 }
 
-							 return [System.String]$defaultOutPath
+							 return $([System.String]$defaultOutPath)
 							}
 				        ),
 
@@ -77,7 +77,7 @@ function Invoke-KeyCipher(){
 		$inFileExt = $($inputFileName.split('.')[$inputFileName.Split('.').Length -1])
 
 		# Temporary Directory
-		if($outFilePath -ne ''){
+		if($outFilePath -ne '-'){
 			if(-not $(Test-Path $env:TEMP\$($inputFileName.split('.')[0]))){
 				mkdir $env:TEMP\$($inputFileName.split('.')[0]) | Out-Null
 			}
@@ -102,8 +102,20 @@ function Invoke-KeyCipher(){
 		}
 		
 		$decipherFilePath = $(Join-path $env:TEMP\$($inputFileName.split('.')[0]) "Deciphered.dec") 	
-		$isPython = $($($env:PATH | Select-String 'python').Matches.Success)
+		$isPython = $($($env:PATH | Select-String 'python27').Matches.Success)
 		$LogPath = ""
+		$version = $([string]$(Find-Module Invoke_KeyCipher).Version)
+
+		# Setting the module installation path
+
+		if(Test-Path $(Join-Path $PSHOME\Modules Invoke_KeyCipher)){
+			$moduleInstallationPath = $(Join-Path $PSHOME\Modules Invoke_KeyCipher)
+		}
+
+		if(Test-Path $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowershell\Modules Invoke_KeyCipher)){
+			$moduleInstallationPath = $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowershell\Modules Invoke_KeyCipher\$version\)
+		}
+		 
 
 	}
 
@@ -120,7 +132,7 @@ function Invoke-KeyCipher(){
 				$iFileName = $(@($inFilePath.split('\'))[@($inFilePath.split('\')).count - 1])
 				
 				# Make the temp directory
-				if($outFilePath -ne $true){
+				if($outFilePath -ne '-'){
 					if(-not $(Test-Path $env:TEMP\$($iFileName.split('.')[0]))){
 						mkdir $env:TEMP\$($iFileName.split('.')[0]) | Out-Null
 					}
@@ -193,9 +205,10 @@ function Invoke-KeyCipher(){
 			 {
 					# Password hashing
 					Write-Host "[+] Beginning Password hashing ..." -ForegroundColor Green
-					
-					$keyCipherStream = $(Join-Path . '\KeyCipher_stream_encrypter.py')
-					if($isPython){
+
+					$keyCipherStream = $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py')
+
+					if($isPython -and $(Test-Path $keyCipherStream)){
 						if($inFilePath.Contains('/') -or $inFilePath.Contains('\')){
 							Write-Host "[!] Warning: The string you are trying to encrypt could be a path" -ForegroundColor Yellow 
 						}
@@ -211,8 +224,8 @@ function Invoke-KeyCipher(){
 				#Password unhashing
 				Write-Host "[+] Begninnig Password unhashing ..." -ForegroundColor Cyan
 	
-					$keyCipherStream = $(Join-Path . '\KeyCipher_stream_encrypter.py')
-					if($isPython){
+					$keyCipherStream = $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py')
+					if($isPython -and $(Test-Path $keyCipherStream)){
 						$unhashedPass = $(Get-Content -Path $(Join-Path $env:TEMP passHash))
 						if(Test-Path $(Join-Path $env:TEMP passHash)){Remove-Item $(Join-Path $env:TEMP passHash)}
 						return "[Password] "+$(python $keyCipherStream --decrypt $key $unhashedPass -m)+"`n[+] Done"
@@ -246,7 +259,7 @@ function base64Encode(){
 		"["+$(Get-Date)+"][base64Encode] :: ERROR :: File Not Found (certutil.exe).`n" >> $LogPath
 
 		# Alternative for certutil.exe
-	    Out-File -InputObject $(python $(Join-Path . '/base64.py') -e $inFilePath) -Path $base64EncodeFilePath
+	    Out-File -InputObject $(python $(Join-Path $moduleInstallationPath '/base64.py') -e $inFilePath) -Path $base64EncodeFilePath
 	}
 }
 
@@ -292,7 +305,7 @@ function base64Decode()
 		"["+$(Get-Date)+"][base64Decode] :: ERROR :: File Not Found (certutil.exe).`n" >> $LogPath
 
 		# Alternative for certutil.exe
-		Out-File -InputObject $(python $(Join-Path . '/base64.py') -d $decipherFilePath) -Path $base64DecodeFilePath
+		Out-File -InputObject $(python $(Join-Path $moduleInstallationPath '/base64.py') -d $decipherFilePath) -Path $base64DecodeFilePath
 			
 		if(Test-Path $base64DecodeFilePath){Copy-Item $base64DecodeFilePath $outFilePath}
 		if(Test-Path $(Join-path $outFilePath $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))){Remove-Item $(Join-path $outFilePath $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))}
@@ -329,7 +342,7 @@ function encipherFile()
 					# Show Progress
 					Show-ProgressBar($actual_pcnt, "Encrypting ")
 			
-					$enc_line = $(python $(Join-Path . '\KeyCipher_stream_encrypter.py') --encrypt $key $innerLine -m)
+					$enc_line = $(python $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py') --encrypt $key $innerLine -m)
 
 					Out-File -FilePath $($encipherFilePath.Replace('enc', $pt_ext)) -Append  -InputObject $enc_line -Encoding string
 				} 
@@ -342,7 +355,7 @@ function encipherFile()
 				Write-host "[+] Verifying and Saving Encrypted File..." -ForegroundColor Gray
 				if(Test-Path $base64EncodeFilePath){Remove-Item $base64EncodeFilePath}
 				if(Test-Path $($encipherFilePath.Replace('enc', $pt_ext))){Copy-Item $($encipherFilePath.Replace('enc', $pt_ext)) $outFilePath}
-				if(Test-Path $encipherFilePath){Copy-Item $encipherFilePath $outFilePath}
+		
 			}
 			else 
 			{
@@ -358,7 +371,7 @@ function encipherFile()
 					Show-ProgressBar($actual_pcnt, "Encrypting ")
 												
 					# Encryption is done line by line
-					$enc_line = $(python $(Join-Path . '\KeyCipher_stream_encrypter.py') --encrypt $key $line -m)
+					$enc_line = $(python $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py') --encrypt $key $line -m)
 
 					Out-File -FilePath $encipherFilePath -Append  -InputObject $enc_line -Encoding string
 
@@ -366,6 +379,8 @@ function encipherFile()
 
 				Write-host "[+] Verifying and Saving Encrypted File..." -ForegroundColor Gray
 				if(Test-Path $base64EncodeFilePath){Remove-Item $base64EncodeFilePath}
+				#Debug
+				Write-Host $encipherFilePath, $outFilePath
 				if(Test-Path $encipherFilePath){Copy-Item $encipherFilePath $outFilePath}
 			}
 		}
@@ -411,7 +426,7 @@ function decipherFile(){
 
 					# Show Progress
 					Show-ProgressBar($actual_pcnt, "Decrypting ")
-					$dec_line = $(python $(Join-Path . '\KeyCipher_stream_encrypter.py') --decrypt $key $line -m)  
+					$dec_line = $(python $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py') --decrypt $key $line -m)  
 											   
 					Out-File -FilePath $decipherFilePath -Append  -InputObject $dec_line -Encoding string
 
@@ -436,7 +451,7 @@ function decipherFile(){
 				
 				# Show Progress
 				Show-ProgressBar($actual_pcnt, "Decrypting ")
-				$dec_line = $(python $(Join-Path . '\KeyCipher_stream_encrypter.py') --decrypt $key $line -m)  
+				$dec_line = $(python $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py') --decrypt $key $line -m)  
 											   
 				Out-File -FilePath $decipherFilePath -Append  -InputObject $dec_line -Encoding string
 
