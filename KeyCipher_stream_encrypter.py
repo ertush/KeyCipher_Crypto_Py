@@ -13,7 +13,7 @@ MODE = 1
 KEYMODE = 4
 
 # Omitting some special chars that have a trouble with powershell
-special_chars = ['\'','\"','(',')','{','}','$','`'] 
+special_chars = ['\'','\"'] # Additional special chars ['(',')','{','}','$','`','&','%','#']
 
 punctuation = string.punctuation
 

@@ -40,15 +40,22 @@ function Invoke-KeyCipher(){
 		)]
 		[Alias('DirectoryName')]
 		[String] 
-		$outFilePath = $(	  
+		$outFilePath = $(	 
+							 # Checking mode parameter
+							 if($($mode -eq "hash") -or $($mode -eq "unhash")){
+								 return ''
+							 }
+							 else
+							 { 
 							 # The Default Output path
-							 $defaultOutPath = [string]$(Join-Path $env:PUBLIC $("\Documents\"+$(@($inFilePath.split('\'))[@($inFilePath.split('\')).count - 1])).split('.')[0]);
+							 $defaultOutPath = $([string]$(Join-Path $env:PUBLIC $("\Documents\"+$(@($inFilePath.split('\'))[@($inFilePath.split('\')).count - 1])).split('.')[0]));
 							
 							 if(-not $(Test-Path $defaultOutPath)){
 								mkdir $defaultOutPath
 							 }
 
 							 return [System.String]$defaultOutPath
+							}
 				        ),
 
 		[parameter(position = 5, mandatory = $false)]
@@ -70,11 +77,12 @@ function Invoke-KeyCipher(){
 		$inFileExt = $($inputFileName.split('.')[$inputFileName.Split('.').Length -1])
 
 		# Temporary Directory
-		if(-not $(Test-Path $env:TEMP\$($inputFileName.split('.')[0]))){
-			mkdir $env:TEMP\$($inputFileName.split('.')[0]) | Out-Null
+		if($outFilePath -ne ''){
+			if(-not $(Test-Path $env:TEMP\$($inputFileName.split('.')[0]))){
+				mkdir $env:TEMP\$($inputFileName.split('.')[0]) | Out-Null
+			}
 		}
 		 
-
 		$ErrorActionPreference = "SilentlyContinue"
 		$base64EncodeFilePath = $(Join-path $env:TEMP\$($inputFileName.split('.')[0]) "Encoded.bs64enc") 
 		$bsDecodeName = $inputFileName.replace($inFileExt, $($("dec64.")+$inFileExt))
@@ -112,10 +120,11 @@ function Invoke-KeyCipher(){
 				$iFileName = $(@($inFilePath.split('\'))[@($inFilePath.split('\')).count - 1])
 				
 				# Make the temp directory
-				if(-not $(Test-Path $env:TEMP\$($iFileName.split('.')[0]))){
-					mkdir $env:TEMP\$($iFileName.split('.')[0]) | Out-Null
+				if($outFilePath -ne $true){
+					if(-not $(Test-Path $env:TEMP\$($iFileName.split('.')[0]))){
+						mkdir $env:TEMP\$($iFileName.split('.')[0]) | Out-Null
+					}
 				}
-				
 				
 				$p_ext = $('enc-')+$([string]$lineBufferSize)
 				$iFileExt = $($iFileName.split('.')[$iFileName.Split('.').Length - 1])
@@ -154,49 +163,64 @@ function Invoke-KeyCipher(){
 
 		switch ($mode) {
 			$("encrypt")
-			{  
-				# Encrypting File
+			{  			
+				# Encrypting Files
 				Write-Host "[+] Beginning File Encryption ..." -ForegroundColor Green
-				
-				#Check whether the stream flag has been set by checking outFilePath
-				$is_Stream = $($outFilePath -eq $true)
-
-				if($is_Stream){
-					$keyCipherStream = $(Join-Path . '\KeyCipher_stream_encrypter.py')
-					if($isPython){
-						if($inFilePath.Contains('/') -or $inFilePath.Contains('\')){
-							Write-Host "[!] Warning: The string you are trying to encrypt could be a path" -ForegroundColor Yellow 
-						}
-						return $(python $keyCipherStream --encrypt $_key $inFilePath -m)
-					}
-				}
 
 				base64Encode($isCertUtil, $inFilePath, $LogPath)
 				encipherFile($base64EncodeFilePath, $encipherFilePath, $key, $LogPath, $isPython, $pt_ext)
 				
 				Write-Host "[+] Done Encrypting" -ForegroundColor Green
-
+				
 			}
 			$("decrypt")
 			 { 
 				# Decrypting File
 				Write-Host "[+] Beginning File Decryption ..." -ForegroundColor Cyan
 
-				
-				if($_isStream){
-					$keyCipherStream = $(Join-Path . '\KeyCipher_stream_encrypter.py')
-
-					if($isPython){
-						return $(python $keyCipherStream --encrypt $_key [string]$inFilePath -m)
-					}
-				}
-
 				decipherFile($decipherFilePath, $encipherFilePath, $key, $LogPath, $isPython, $pt_ext, $inFileExt, $isEncipherFilePartial) 
 				$decryptionStatus = base64Decode($decipherFilePath, $base64DecodeFilePath, $LogPath)
 
-				Write-Host $($("[+] ")+$decryptionStatus) -ForegroundColor Magenta
+				if($($decryptionStatus -ne 'Nul') -or $($decryptionStatus) -ne ''){
+					Write-Host $($("[+] ")+$decryptionStatus) -ForegroundColor Magenta
+				}
+				else
+				{
+					Write-Host "[+] Done Decrypting" -ForegroundColor Magenta
+				}
 			 }
-			Default {Write-Host "[!] Please Refer to the help for appropriate mode" -ForegroundColor Red}
+			 $("hash")
+			 {
+					# Password hashing
+					Write-Host "[+] Beginning Password hashing ..." -ForegroundColor Green
+					
+					$keyCipherStream = $(Join-Path . '\KeyCipher_stream_encrypter.py')
+					if($isPython){
+						if($inFilePath.Contains('/') -or $inFilePath.Contains('\')){
+							Write-Host "[!] Warning: The string you are trying to encrypt could be a path" -ForegroundColor Yellow 
+						}
+	
+						$passHash = $(python $keyCipherStream --encrypt $key $inFilePath -m)
+						Set-Content -Path $(Join-Path $env:TEMP passHash) -Value $passHash
+							
+						return "[Hash] "+$passHash+"`n[+] Done" 
+					}
+			 }
+			 $("unhash")
+			 {
+				#Password unhashing
+				Write-Host "[+] Begninnig Password unhashing ..." -ForegroundColor Cyan
+	
+					$keyCipherStream = $(Join-Path . '\KeyCipher_stream_encrypter.py')
+					if($isPython){
+						$unhashedPass = $(Get-Content -Path $(Join-Path $env:TEMP passHash))
+						if(Test-Path $(Join-Path $env:TEMP passHash)){Remove-Item $(Join-Path $env:TEMP passHash)}
+						return "[Password] "+$(python $keyCipherStream --decrypt $key $unhashedPass -m)+"`n[+] Done"
+						
+					}	
+			 }		
+			 
+			Default {Write-Host "[!] Please Refer to the help for appropriate mode" -ForegroundColor Yellow}
 		}
 
 	}
@@ -207,13 +231,14 @@ function Invoke-KeyCipher(){
 	}
 }
 
+# Encode function
 function base64Encode(){
 
 	
 	if($isCertUtil)
 	{	
 
-		certutil -encode $inFilePath $base64EncodeFilePath
+		certutil -encode $inFilePath $base64EncodeFilePath 
 				
 	}
 	else
@@ -225,6 +250,7 @@ function base64Encode(){
 	}
 }
 
+# Decode function
 
 function base64Decode()
 {
@@ -234,7 +260,7 @@ function base64Decode()
 	{
 		if($isdecipherFilePath)
 		{
-			certutil -decode $decipherFilePath $base64DecodeFilePath
+			certutil -decode $decipherFilePath $base64DecodeFilePath | Out-Null
 
 			if($? -ne $true){
 
@@ -258,6 +284,7 @@ function base64Decode()
 		{
 			"["+$(Get-Date)+"][base64Decode] :: ERROR :: File Not Found ("+ $decipherFilePath +").`n" >> $LogPath
 			
+			return 'Nul'
 		}
 	}
 	else
@@ -271,6 +298,8 @@ function base64Decode()
 		if(Test-Path $(Join-path $outFilePath $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))){Remove-Item $(Join-path $outFilePath $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))}
 		if(Test-Path $(Join-path $outFilePath $inputFileName.replace($inFileExt, $('enc.')+$inFileExt))){Remove-Item $(Join-path $outFilePath $inputFileName.replace($inFileExt, $('enc.')+$inFileExt))}
 		if(Test-Path $env:TEMP\$($inputFileName.split('.')[0])){Remove-Item -Recurse $env:TEMP\$($inputFileName.split('.')[0]) }
+	
+		return "Done"
 	}
 }
 
@@ -437,7 +466,7 @@ function Show-ProgressBar($params){
 
 	$show_pcnt = [int]$($($act_pcnt) * 10)
 
-	Write-Progress -Activity $($action+[string]$inputFileName)`
+	Write-Progress -Activity $($action+$([string]$inputFileName))`
 				   -Status $([string]$show_pcnt+"% Complete")`
 				   -PercentComplete $($act_pcnt * 10)
 }
