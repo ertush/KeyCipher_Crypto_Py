@@ -7,6 +7,8 @@ function Invoke-KeyCipher(){
 .FUNCTIONALITY
 	Invoke KeyCipher enciphering / deciphering python script
 .EXAMPLE
+	File Encryption/Decryption Examples
+
 	Invoke-KeyCipher decrypt pa55w0rd .\input\File.ext .\out\File.ext 
 
 	PS > Invoke-KeyCipher encrypt pa55w0rd .\input\File.ext
@@ -16,6 +18,16 @@ function Invoke-KeyCipher(){
 	PS > $(ls "C:\Users\ERIC\Desktop\WindowsUpdate.log") | Invoke-KeyCipher -mode encrypt -key ricoTush -lineBufferSize 9
 
 	PS > $(ls "C:\Users\ERIC\Desktop\WindowsUpdate.log") | Invoke-KeyCipher -mode encrypt -key ricoTush -fullEncryption $true
+
+	Password Hashing Examples
+
+	PS > Invoke-KeyCipher hash ricoTUSH ricoPASS
+
+	PS > Invoke-KeyCipher unhash ricoTUSH ricoPASS
+.NOTES
+    Author: Eric Mutua
+    Date: 22.04.2019
+    Version: 0.1.0
 #>
 
 	[CmdLetBinding()]
