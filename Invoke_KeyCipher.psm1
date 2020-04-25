@@ -121,13 +121,16 @@ function Invoke-KeyCipher(){
 		# Setting the module installation path
 
 		if(Test-Path $(Join-Path $PSHOME\Modules Invoke_KeyCipher)){
-			$moduleInstallationPath = $(Join-Path $PSHOME\Modules Invoke_KeyCipher)
+			$moduleInstallationPath = $(Join-Path $PSHOME\Modules Invoke_KeyCipher\$version\)
 		}
 
-		if(Test-Path $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowershell\Modules Invoke_KeyCipher)){
-			$moduleInstallationPath = $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowershell\Modules Invoke_KeyCipher\$version\)
+		if(Test-Path $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowerShell\Modules Invoke_KeyCipher)){
+			$moduleInstallationPath = $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowerShell\Modules Invoke_KeyCipher\$version\)
 		}
 		 
+		if(Test-Path $(Join-Path $env:ProgramFiles\WindowsPowerShell\Modules Invoke_KeyCipher)){
+			$moduleInstallationPath = $(Join-Path $env:ProgramFiles\WindowsPowerShell\Modules Invoke_KeyCipher\$version\)
+		}
 
 	}
 
