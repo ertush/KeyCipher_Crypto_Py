@@ -1,7 +1,7 @@
 ## Invoke_KeyCipher
 
   This powershell module is the ochestrator of the encryption and decryption done by ```KeyCipher_stream_encrypter.py```.
-  It adds more features to the base encrypter / decrypter and acts as a wrapper for th python script.
+  It adds more features to the base encrypter / decrypter and acts as a wrapper to the python script.
 
   For more info and usage run ```Get-Help Invoke-KeyCipher``` and ```Get-help Invoke-KeyCipher -Example``` to see examples
 
