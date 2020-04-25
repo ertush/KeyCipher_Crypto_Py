@@ -12,8 +12,8 @@
   * Maintains a log file 
 
   ### How to install
-   Run ```Install-Module -Name Invoke_KeyCipher -RequiredVersion 0.0.1``` then import it using 
-   ```Import-Module -Path ${env:ProgramFiles(x86)}\WindowsPowershell\Modules\Invoke_KeyCipher\0.0.1\Invoke_KeyCipher.psm1```
+   Run ```Install-Module -Name Invoke_KeyCipher -RequiredVersion 0.0.1``` 
+  
 
   ## Dependencies
   * Certutil.exe
