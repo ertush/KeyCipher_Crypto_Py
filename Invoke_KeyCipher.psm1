@@ -22,9 +22,19 @@ function Invoke-KeyCipher(){
 
 	Password Hashing Examples
 
-	PS > Invoke-KeyCipher hash ricoTUSH ricoPASS
+	PS > Invoke-KeyCipher hash secret mypassword
 
-	PS > Invoke-KeyCipher unhash ricoTUSH ricoPASS
+	PS > Invoke-KeyCipher unhash secret mypassword
+
+	Encrypting Multiple Files
+
+	PS > $files = $(ls C:\Users\ERIC\Downloads\Video\Strike* | ? {$($_.length / 1mb) -lt 200} | %{ $_.FullName })  
+	
+	PS > $files | %{Write-Progress -Activity "Encrypting.." -Status $_.Split('\')[$_.Split('\').Length - 1] ; Invoke-KeyCipher encrypt mysecret $_ -lineBufferSize 10 }
+
+	Decrypting Multiple Files
+
+	PS > $files | %{Write-Progress -Activity "Decrypting.." -Status $_.Split('\')[$_.Split('\').Length - 1] ; Invoke-KeyCipher decrypt mysecret $_ -lineBufferSize 10 -retainAllFiles | Out-Null} 
 
 .INPUTS
 	[System.String] mode (encrypt | decrypt | hash | unhash)
@@ -137,17 +147,16 @@ function Invoke-KeyCipher(){
 
 		# Setting the module installation path
 		if(Test-Path $(Join-Path $PSHOME\Modules Invoke_KeyCipher)){
-			# $moduleInstallationPath = $(Join-Path $PSHOME\Modules Invoke_KeyCipher\)
-			$moduleInstallationPath = $(Get-Location).Path
+			$moduleInstallationPath = $(Join-Path $PSHOME\Modules Invoke_KeyCipher\)
 		}
 
-		# if(Test-Path $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowerShell\Modules Invoke_KeyCipher)){
-		# 	$moduleInstallationPath = $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowerShell\Modules Invoke_KeyCipher\$version\)
-		# }
+		if(Test-Path $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowerShell\Modules Invoke_KeyCipher)){
+			$moduleInstallationPath = $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowerShell\Modules Invoke_KeyCipher\$version\)
+		}
 		 
-		# if(Test-Path $(Join-Path $env:ProgramFiles\WindowsPowerShell\Modules Invoke_KeyCipher)){
-		# 	$moduleInstallationPath = $(Join-Path $env:ProgramFiles\WindowsPowerShell\Modules Invoke_KeyCipher\$version\)
-		# }
+		if(Test-Path $(Join-Path $env:ProgramFiles\WindowsPowerShell\Modules Invoke_KeyCipher)){
+			$moduleInstallationPath = $(Join-Path $env:ProgramFiles\WindowsPowerShell\Modules Invoke_KeyCipher\$version\)
+		}
 
 		# Setting and testing the base64util path
 		$isBase64Util = $(Test-Path $(Join-Path $moduleInstallationPath 'base64.exe'))
