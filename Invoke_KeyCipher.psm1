@@ -1,11 +1,14 @@
 function Invoke-KeyCipher(){
 <#
 .SYNOPSIS
-	Invoke-KeyCipher [mode (encrypt | derypt)] [key secret] [inFilePath | string_stream] [outFilePath path_to_save]   
+	Invoke-KeyCipher [mode (encrypt | derypt)] [key secret] [inFilePath | string_stream] [outFilePath path_to_save]
+
 .DESCRIPTION
 	Encrypt / Decrypt files
+
 .FUNCTIONALITY
 	Invoke KeyCipher enciphering / deciphering python script
+
 .EXAMPLE
 	File Encryption/Decryption Examples
 
@@ -14,20 +17,34 @@ function Invoke-KeyCipher(){
 	PS > Invoke-KeyCipher encrypt pa55w0rd .\input\File.ext
 
 	PS > Invoke-KeyCipher encrypt my_Secret_key 5ecret@pa55w0rd
-
-	PS > $(ls "C:\Users\ERIC\Desktop\WindowsUpdate.log") | Invoke-KeyCipher -mode encrypt -key ricoTush -lineBufferSize 9
-
-	PS > $(ls "C:\Users\ERIC\Desktop\WindowsUpdate.log") | Invoke-KeyCipher -mode encrypt -key ricoTush -fullEncryption $true
+	
+	PS > Invoke-KeyCipher -mode encrypt -key ricoTush /my/file/in/directory -lineBufferSize 80 # This saves to default path which is %HOMEDRIVE%\USERS\PUBLIC\DOCUMENTS 
 
 	Password Hashing Examples
 
 	PS > Invoke-KeyCipher hash ricoTUSH ricoPASS
 
 	PS > Invoke-KeyCipher unhash ricoTUSH ricoPASS
+
+.INPUTS
+	[System.String] mode (encrypt | decrypt | hash | unhash)
+	[System.String] key (secret)
+	[System.String] inputFilePath (location of file *fullpathName)
+	[System.String] outFilePath (location of save dir *only directory)
+	[Integer] lineBufferSize (for *partial encryption only)
+	[Switch] fullEncryption (for *full Encryption)
+	[Switch] retainAllFiles (used when *encrypting/decrypting multiple files)
+
 .NOTES
+
+	The Module is only capable of encrypting and decrypting files less than 500 Mb at a reasonable time of approximately 5 - 10 minutes.
+	It is advisable to use the -lineBufferSize flag for large files of more than 10 mb and -fullEncryption for files less than 10 mb.
+	
+	For this version (v 0.1.3) the default encode / decode utility is base64.exe which is more capable compared to certutil.exe which was used in previous versions.
+
     Author: Eric Mutua
-    Date: 22.04.2019
-    Version: 0.1.0
+    Date: 22.04.2020
+    Version: 0.1.3
 #>
 
 	[CmdLetBinding()]
@@ -52,38 +69,39 @@ function Invoke-KeyCipher(){
 		)]
 		[Alias('DirectoryName')]
 		[String] 
-		$outFilePath = $(	 
-							 # Checking mode parameter
-							 if($($mode -eq "hash") -or $($mode -eq "unhash")){
-								 return '-'
-							 }
-							 else
-							 { 
-							 # The Default Output path
-							 $defaultOutPath = $([string]$(Join-Path $env:PUBLIC $("\Documents\"+$(@($inFilePath.split('\'))[@($inFilePath.split('\')).count - 1])).split('.')[0]));
-							
-							 if(-not $(Test-Path $defaultOutPath)){
-								mkdir $defaultOutPath
-							 }
-
-							 return $([System.String]$defaultOutPath)
-							}
-				        ),
+		$outFilePath = $(
+						[string]$(Join-Path $env:PUBLIC $("\Documents\"+$(@($inFilePath.split('\'))[@($inFilePath.split('\')).count - 1])).split('.')[0])
+						),
 
 		[parameter(position = 5, mandatory = $false)]
 		[int] $lineBufferSize = 10,
 
 		[parameter(position = 6, mandatory = $false)]
-		[switch] $fullEncription = $false
+		[switch] $fullEncryption = $false,
+		[switch]$retainAllFiles = $false
 	)
 
 	begin {
 
 		$ErrorActionPreference = "Silently Continue"
-		
-		$isCertUtil = $(Test-Path $env:windir\System32\certutil.exe)
 
-		Set-Alias certutil $(Join-path $env:windir "\System32\certutil.exe")
+		# Setting OutFilePath param
+		$defaultOutPath = $([string]$(Join-Path $env:PUBLIC $("\Documents\"+$(@($inFilePath.split('\'))[@($inFilePath.split('\')).count - 1])).split('.')[0]));
+							 
+		# Checking mode parameter
+		if($($mode -eq "hash") -or $($mode -eq "unhash")){
+			$outFilePath = '-'
+		}
+		else
+		{ 
+			if($outFilePath -eq $defaultOutPath){
+				if(-not $(Test-Path $defaultOutPath)){
+					mkdir $defaultOutPath | Out-Null
+				}
+			}	
+				
+		}
+		
 
 		$inputFileName = $(@($inFilePath.split('\'))[@($inFilePath.split('\')).count - 1])
 		$inFileExt = $($inputFileName.split('.')[$inputFileName.Split('.').Length -1])
@@ -95,16 +113,13 @@ function Invoke-KeyCipher(){
 			}
 		}
 		 
-		$ErrorActionPreference = "SilentlyContinue"
+		# Instantiating other constants
 		$base64EncodeFilePath = $(Join-path $env:TEMP\$($inputFileName.split('.')[0]) "Encoded.bs64enc") 
 		$bsDecodeName = $inputFileName.replace($inFileExt, $($("dec64.")+$inFileExt))
 		$base64DecodeFilePath = $(Join-path $outFilePath $bsDecodeName)
-
 		$pt_ext = $('enc-')+$([string]$lineBufferSize)
-
 		$possibleEncipherPath = $(Join-path $env:TEMP\$($inputFileName.split('.')[0]) $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))
 		
-
 		if(Test-Path $possibleEncipherPath){
 			$encipherFilePath = $(Join-path $env:TEMP\$($inputFileName.split('.')[0]) $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt))) 
 		}
@@ -116,71 +131,32 @@ function Invoke-KeyCipher(){
 		$decipherFilePath = $(Join-path $env:TEMP\$($inputFileName.split('.')[0]) "Deciphered.dec") 	
 		$isPython = $($($env:PATH | Select-String 'python27').Matches.Success)
 		$LogPath = ""
-		$version = $([string]$(Find-Module Invoke_KeyCipher).Version)
+		$isEncipherFilePartial = $($encipherFilePath.Split('enc')[1] -eq $($pt_ext.Split('enc')[1]+'.'+$inFileExt))
+		$version = "0.1.3" 
+
 
 		# Setting the module installation path
-
 		if(Test-Path $(Join-Path $PSHOME\Modules Invoke_KeyCipher)){
-			$moduleInstallationPath = $(Join-Path $PSHOME\Modules Invoke_KeyCipher\$version\)
+			# $moduleInstallationPath = $(Join-Path $PSHOME\Modules Invoke_KeyCipher\)
+			$moduleInstallationPath = $(Get-Location).Path
 		}
 
-		if(Test-Path $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowerShell\Modules Invoke_KeyCipher)){
-			$moduleInstallationPath = $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowerShell\Modules Invoke_KeyCipher\$version\)
-		}
+		# if(Test-Path $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowerShell\Modules Invoke_KeyCipher)){
+		# 	$moduleInstallationPath = $(Join-Path ${env:ProgramFiles(x86)}\WindowsPowerShell\Modules Invoke_KeyCipher\$version\)
+		# }
 		 
-		if(Test-Path $(Join-Path $env:ProgramFiles\WindowsPowerShell\Modules Invoke_KeyCipher)){
-			$moduleInstallationPath = $(Join-Path $env:ProgramFiles\WindowsPowerShell\Modules Invoke_KeyCipher\$version\)
-		}
+		# if(Test-Path $(Join-Path $env:ProgramFiles\WindowsPowerShell\Modules Invoke_KeyCipher)){
+		# 	$moduleInstallationPath = $(Join-Path $env:ProgramFiles\WindowsPowerShell\Modules Invoke_KeyCipher\$version\)
+		# }
 
+		# Setting and testing the base64util path
+		$isBase64Util = $(Test-Path $(Join-Path $moduleInstallationPath 'base64.exe'))
+		Set-Alias base64 $(Join-Path $moduleInstallationPath 'base64.exe')
 	}
 
 	process
 	{
-			# Check if $base64EncodeFilePath is complete to take care of pipeline values
-			# For pipeline values only
-			# Begin Section for pipelined input parameters
-			if(-not $base64EncodeFilePath.Contains($(@($inFilePath.split('\'))[@($inFilePath.split('\')).count - 1]))){
-				$ErrorActionPreference = "Silently Continue"
-				$isCertUtil = $(Test-Path $env:windir\System32\certutil.exe)
-				Set-Alias certutil $(Join-path $env:windir "\System32\certutil.exe")
-
-				$iFileName = $(@($inFilePath.split('\'))[@($inFilePath.split('\')).count - 1])
-				
-				# Make the temp directory
-				if($outFilePath -ne '-'){
-					if(-not $(Test-Path $env:TEMP\$($iFileName.split('.')[0]))){
-						mkdir $env:TEMP\$($iFileName.split('.')[0]) | Out-Null
-					}
-				}
-				
-				$p_ext = $('enc-')+$([string]$lineBufferSize)
-				$iFileExt = $($iFileName.split('.')[$iFileName.Split('.').Length - 1])
-				$bsDecodeName = $iFileName.replace($iFileExt, $($("dec64.")+$iFileExt))
-				
-				# Set paths
-				$base64EncodeFilePath = $(Join-path $env:TEMP\$($iFileName.split('.')[0]) "Encoded.bs64enc")
-				$psbEncipherPath = $(Join-path $env:TEMP\$($iFileName.split('.')[0]) $iFileName.replace($iFileExt, $($($p_ext+'.')+$iFileExt)))
-				
-				if(Test-Path $psbEncipherPath){
-					$encipherFilePath = $(Join-path $env:TEMP\$($iFileName.split('.')[0]) $iFileName.replace($iFileExt, $($($p_ext+'.')+$iFileExt))) 
-				}
-				else 
-				{
-					$encipherFilePath = $(Join-path $env:TEMP\$($iFileName.split('.')[0]) $iFileName.replace($iFileExt, $('enc.')+$iFileExt)) 
-				}
-
-				$decipherFilePath = $(Join-path $env:TEMP\$($iFileName.split('.')[0]) "Deciphered.dec")
-				$base64DecodeFilePath = $(Join-path $outFilePath $bsDecodeName)
-				$isPython = $($($env:PATH | Select-String 'python').Matches.Success)
-				$LogPath = ""
-				$isEncipherFilePartial = $($encipherFilePath.Split('enc')[1] -eq $($p_ext.Split('enc')[1]+'.'+$iFileExt))
-				$inputFileName = $iFileName;
-				$pt_ext = $p_ext;
-				$inFileExt = $iFileExt;
-			}
-
-			# End Begin Section for pipelined values
-
+		# Checking whether the Log File exist
 		if( -not $(Test-Path $(Join-path $env:TEMP "\KeyCipher"))){
 			mkdir  $(Join-path $env:TEMP "\KeyCipher") | Out-Null
 		}
@@ -194,8 +170,8 @@ function Invoke-KeyCipher(){
 				# Encrypting Files
 				Write-Host "[+] Beginning File Encryption ..." -ForegroundColor Green
 
-				base64Encode($isCertUtil, $inFilePath, $LogPath)
-				encipherFile($base64EncodeFilePath, $encipherFilePath, $key, $LogPath, $isPython, $pt_ext)
+				base64Encode($isBase64Util, $LogPath) #($isBase64Util, $inFilePath, $LogPath)
+				encipherFile($base64EncodeFilePath, $LogPath) #($base64EncodeFilePath, $encipherFilePath, $key, $LogPath, $isPython, $pt_ext)
 				
 				Write-Host "[+] Done Encrypting" -ForegroundColor Green
 				
@@ -205,11 +181,11 @@ function Invoke-KeyCipher(){
 				# Decrypting File
 				Write-Host "[+] Beginning File Decryption ..." -ForegroundColor Cyan
 
-				decipherFile($decipherFilePath, $encipherFilePath, $key, $LogPath, $isPython, $pt_ext, $inFileExt, $isEncipherFilePartial) 
-				$decryptionStatus = base64Decode($decipherFilePath, $base64DecodeFilePath, $LogPath)
+				decipherFile($decipherFilePath, $isEncipherFilePartial) #($decipherFilePath, $encipherFilePath, $key, $LogPath, $isPython, $pt_ext, $inFileExt, $isEncipherFilePartial) 
+				$decryptionStatus = base64Decode($decipherFilePath, $base64DecodeFilePath) #($decipherFilePath, $base64DecodeFilePath, $LogPath)
 
 				if($($decryptionStatus -ne 'Nul') -or $($decryptionStatus) -ne ''){
-					Write-Host $($("[+] ")+$decryptionStatus) -ForegroundColor Magenta
+					Write-Host $($("[+] ")+$decryptionStatus) -ForegroundColor Cyan
 				}
 				else
 				{
@@ -218,21 +194,21 @@ function Invoke-KeyCipher(){
 			 }
 			 $("hash")
 			 {
-					# Password hashing
-					Write-Host "[+] Beginning Password hashing ..." -ForegroundColor Green
+				# Password hashing
+				Write-Host "[+] Beginning Password hashing ..." -ForegroundColor Green
 
-					$keyCipherStream = $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py')
+				$keyCipherStream = $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py')
 
-					if($isPython -and $(Test-Path $keyCipherStream)){
-						if($inFilePath.Contains('/') -or $inFilePath.Contains('\')){
-							Write-Host "[!] Warning: The string you are trying to encrypt could be a path" -ForegroundColor Yellow 
-						}
-	
-						$passHash = $(python $keyCipherStream --encrypt $key $inFilePath -m)
-						Set-Content -Path $(Join-Path $env:TEMP passHash) -Value $passHash
-							
-						return "[Hash] "+$passHash+"`n[+] Done" 
+				if($isPython -and $(Test-Path $keyCipherStream)){
+					if($inFilePath.Contains('/') -or $inFilePath.Contains('\')){
+						Write-Host "[!] Warning: The string you are trying to encrypt could be a path" -ForegroundColor Yellow 
 					}
+	
+					$passHash = $(python $keyCipherStream --encrypt $key $inFilePath -m)
+					Set-Content -Path $(Join-Path $env:TEMP passHash) -Value $passHash
+							
+					return "[Hash] "+$passHash+"`n[+] Done" 
+				}
 			 }
 			 $("unhash")
 			 {
@@ -263,18 +239,15 @@ function Invoke-KeyCipher(){
 function base64Encode(){
 
 	
-	if($isCertUtil)
+	if($isBase64Util)
 	{	
 
-		certutil -encode $inFilePath $base64EncodeFilePath 
+		base64 encode $inFilePath $base64EncodeFilePath 
 				
 	}
 	else
 	{
-		"["+$(Get-Date)+"][base64Encode] :: ERROR :: File Not Found (certutil.exe).`n" >> $LogPath
-
-		# Alternative for certutil.exe
-	    Out-File -InputObject $(python $(Join-Path $moduleInstallationPath '/base64.py') -e $inFilePath) -Path $base64EncodeFilePath
+		"["+$(Get-Date)+"][base64Encode] :: ERROR :: File Not Found (base64.exe).`n" >> $LogPath
 	}
 }
 
@@ -284,11 +257,15 @@ function base64Decode()
 {
 	$isdecipherFilePath = $(Test-path $decipherFilePath)
 
-	if($isCertUtil)
+	if($isBase64Util)
 	{
 		if($isdecipherFilePath)
 		{
-			certutil -decode $decipherFilePath $base64DecodeFilePath | Out-Null
+			# Decoded as a line
+
+			 base64 decode $decipherFilePath $base64DecodeFilePath | Out-Null
+			 
+			# Checking whether base64 was succesfull
 
 			if($? -ne $true){
 
@@ -298,15 +275,16 @@ function base64Decode()
 			}
 			else{
 			   
-				Write-host "[+] Removing temporary files..." -ForegroundColor Gray
-
-				if(Test-Path $(Join-path $outFilePath $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))){Remove-Item $(Join-path $outFilePath $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))}
-				if(Test-Path $(Join-path $outFilePath $inputFileName.replace($inFileExt, $('enc.')+$inFileExt))){Remove-Item $(Join-path $outFilePath $inputFileName.replace($inFileExt, $('enc.')+$inFileExt))}
-				if(Test-Path $env:TEMP\$($inputFileName.split('.')[0])){Remove-Item -Recurse $env:TEMP\$($inputFileName.split('.')[0]) }
-					
+				Write-host "[+] Verifying & Saving Decrypted file ..." -ForegroundColor Gray
+				if(-not $retainAllFiles){
+					if(Test-Path $(Join-path $outFilePath $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))){Remove-Item $(Join-path $outFilePath $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))}
+					if(Test-Path $(Join-path $outFilePath $inputFileName.replace($inFileExt, $('enc.')+$inFileExt))){Remove-Item $(Join-path $outFilePath $inputFileName.replace($inFileExt, $('enc.')+$inFileExt))}
+					if(Test-Path $env:TEMP\$($inputFileName.split('.')[0])){Remove-Item -Recurse $env:TEMP\$($inputFileName.split('.')[0]) }
+				}
 				return "Done"
 			}
 
+			
 		}
 		else
 		{
@@ -317,17 +295,8 @@ function base64Decode()
 	}
 	else
 	{
-		"["+$(Get-Date)+"][base64Decode] :: ERROR :: File Not Found (certutil.exe).`n" >> $LogPath
+		"["+$(Get-Date)+"][base64Decode] :: ERROR :: File Not Found (base64.exe).`n" >> $LogPath
 
-		# Alternative for certutil.exe
-		Out-File -InputObject $(python $(Join-Path $moduleInstallationPath '/base64.py') -d $decipherFilePath) -Path $base64DecodeFilePath
-			
-		if(Test-Path $base64DecodeFilePath){Copy-Item $base64DecodeFilePath $outFilePath}
-		if(Test-Path $(Join-path $outFilePath $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))){Remove-Item $(Join-path $outFilePath $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))}
-		if(Test-Path $(Join-path $outFilePath $inputFileName.replace($inFileExt, $('enc.')+$inFileExt))){Remove-Item $(Join-path $outFilePath $inputFileName.replace($inFileExt, $('enc.')+$inFileExt))}
-		if(Test-Path $env:TEMP\$($inputFileName.split('.')[0])){Remove-Item -Recurse $env:TEMP\$($inputFileName.split('.')[0]) }
-	
-		return "Done"
 	}
 }
 
@@ -343,30 +312,38 @@ function encipherFile()
 			Write-host "[+] File Enciphering ..." -ForegroundColor Gray
 			
 			$base64EncBuffer = $(Get-Content $base64EncodeFilePath)
-			$sizeBase64Buffer = $base64EncBuffer.Count
+			$sizeBs64Buffer = $($base64EncBuffer.Length / 1mb)
+			$lineCountBs64Buffer = $base64EncBuffer.Count
+			$charCountBs64Buffer = $($base64EncBuffer | Measure-Object -Character).Characters
+			
+			# Checking if input file is fit for full or partial encryption
+			
+			if ($(Get-Variable -Name fullEncryption).IsValidValue($fullEncryption)){
+				$isPartialEncryption = $false
+			} 
+			if($(Get-Variable -Name lineBufferSize).IsValidValue($lineBufferSize) -and $($lineBufferSize -gt 1)){
+				$isPartialEncryption = $true
+			}
 			
 			# Partial File Encryption
-			if ($($sizeBase64Buffer -gt $lineBufferSize) -and $(-not $fullEncription)){
-
-				$innerLineBuffer = $($base64EncBuffer | Select-Object -First $lineBufferSize)
-				$_divisor = [int]$innerLineBuffer.Count / 10
-				forEach($innerLine in $innerLineBuffer){
+			if ($isPartialEncryption -and ($sizeBs64Buffer -gt 1))
+			{
+				
+				if ($lineCountBs64Buffer -eq 1){
+					# Encryption is done character by character
+					$line = $base64EncBuffer.Substring(0, $lineBufferSize)
 					
-					$actual_pcnt = [int]$innerLineBuffer.indexOf($innerLine) / $_divisor
-					
-					# Show Progress
-					Show-ProgressBar($actual_pcnt, "Encrypting ")
-			
-					$enc_line = $(python $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py') --encrypt $key $innerLine -m)
+					# Encrypt byte after byte
+					$enc_line = $(python $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py') --encrypt $key $line -m)
 
-					Out-File -FilePath $($encipherFilePath.Replace('enc', $pt_ext)) -Append  -InputObject $enc_line -Encoding string
+					# Append the unecrypted text
+					$unencryptedLine = $base64EncBuffer.SubString($lineBufferSize, $([int]$($charCountBs64Buffer - $lineBufferSize)))
+
+					# Saving Everything to File 
+					$($enc_line+$unencryptedLine) >  $($encipherFilePath.Replace('enc', $pt_ext));
 				} 
 				
-				# Append the unecrypted text
-				$unencryptedLines = $($base64EncBuffer | Select-Object -Last $($sizeBase64Buffer - $lineBufferSize))
-				
-				Out-File -FilePath $($encipherFilePath.Replace('enc', $pt_ext)) -Append  -InputObject $unencryptedLines -Encoding string
-				
+			
 				Write-host "[+] Verifying and Saving Encrypted File..." -ForegroundColor Gray
 				if(Test-Path $base64EncodeFilePath){Remove-Item $base64EncodeFilePath}
 				if(Test-Path $($encipherFilePath.Replace('enc', $pt_ext))){Copy-Item $($encipherFilePath.Replace('enc', $pt_ext)) $outFilePath}
@@ -375,27 +352,21 @@ function encipherFile()
 			else 
 			{
 				# Full file Encryption
-				$divisor = [int]$sizeBase64Buffer / 10
-
-				forEach($line in $base64EncBuffer)
+				
+				if ($lineCountBs64Buffer -eq 1)
 				{
-					
-					$actual_pcnt = [int]$base64EncBuffer.indexOf($line) / $divisor
-
-					# Show Progress
-					Show-ProgressBar($actual_pcnt, "Encrypting ")
-												
-					# Encryption is done line by line
+					$line = $base64EncBuffer;
+				
+					# Encryption is done byte after byte
 					$enc_line = $(python $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py') --encrypt $key $line -m)
-
-					Out-File -FilePath $encipherFilePath -Append  -InputObject $enc_line -Encoding string
-
+					
+					# Saving Everything to File
+					$enc_line > $encipherFilePath
+					
 				}
 
 				Write-host "[+] Verifying and Saving Encrypted File..." -ForegroundColor Gray
-				if(Test-Path $base64EncodeFilePath){Remove-Item $base64EncodeFilePath}
-				#Debug
-				Write-Host $encipherFilePath, $outFilePath
+			
 				if(Test-Path $encipherFilePath){Copy-Item $encipherFilePath $outFilePath}
 			}
 		}
@@ -422,8 +393,7 @@ function decipherFile(){
 			Write-host "[+] File Deciphering ..." -ForegroundColor Gray
 			
 			$encipherFileBuffer = $(Get-Content $encipherFilePath)
-			$sizeEncipherBuffer = $encipherFileBuffer.Count
-			
+			$charCountEncipherBuffer = $($encipherFileBuffer | Measure-Object -Character).Characters
 			
 			if(-not $(Get-Variable -Name isEncipherFilePartial).IsValidValue($isEncipherFilePartial)){
 				$isEncipherFilePartial = $($encipherFilePath.Split('enc')[1] -eq $($pt_ext.Split('enc')[1]+'.'+$inFileExt))
@@ -432,24 +402,15 @@ function decipherFile(){
 			# For partial File Decryption
 			if($isEncipherFilePartial){
 
-				$partialEncFileBuffer = $($encipherFileBuffer | Select-Object -First $lineBufferSize)
+				$line = $encipherFileBuffer.SubString(0, $lineBufferSize); 
+				
+				$dec_line = $(python $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py') --decrypt $key $line -m)  
+				
+				$unecryptedLine = $encipherFileBuffer.SubString($lineBufferSize, $([int]$($charCountEncipherBuffer - $lineBufferSize))) 
 
-				$dvs = [int]$partialEncFileBuffer.Count / 10
-
-				forEach($line in $partialEncFileBuffer){
-					$actual_pcnt = [int]$partialEncFileBuffer.indexOf($line) / $dvs
-
-					# Show Progress
-					Show-ProgressBar($actual_pcnt, "Decrypting ")
-					$dec_line = $(python $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py') --decrypt $key $line -m)  
-											   
-					Out-File -FilePath $decipherFilePath -Append  -InputObject $dec_line -Encoding string
-
-				}
-
-				$base64FileBufferRem = $($encipherFileBuffer | Select-Object -Last $($sizeEncipherBuffer - $lineBufferSize))
-				Out-File -FilePath $decipherFilePath -Append  -InputObject $base64FileBufferRem -Encoding string
-
+				# Saving Everything to File
+				$($dec_line+$unecryptedLine) > $decipherFilePath
+				
 				# Clean up
 				Write-host "[+] Removing temporary files..." -ForegroundColor Gray
 				if(Test-Path $base64DecodeFilePath){Remove-Item $base64DecodeFilePath}
@@ -457,20 +418,12 @@ function decipherFile(){
 			else
 			{
 
-			$divisor = [int]$sizeEncipherBuffer / 10
+			$line = $encipherFileBuffer;
+			
+			$dec_line = $(python $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py') --decrypt $key $line -m) 
 
-			# For full File Decryption
-			forEach($line in $encipherFileBuffer)
-			{
-				$actual_pcnt = [int]$encipherFileBuffer.indexOf($line) / $divisor
-				
-				# Show Progress
-				Show-ProgressBar($actual_pcnt, "Decrypting ")
-				$dec_line = $(python $(Join-Path $moduleInstallationPath 'KeyCipher_stream_encrypter.py') --decrypt $key $line -m)  
-											   
-				Out-File -FilePath $decipherFilePath -Append  -InputObject $dec_line -Encoding string
-
-			}
+			# Saving Everything to File
+			$dec_line > $decipherFilePath					   
 			
 			# Clean up
 			Write-host "[+] Removing temporary files..." -ForegroundColor Gray
@@ -489,14 +442,3 @@ function decipherFile(){
 
 }
 
-function Show-ProgressBar($params){
-	
-	$act_pcnt = $params[0]
-	$action = $params[1]
-
-	$show_pcnt = [int]$($($act_pcnt) * 10)
-
-	Write-Progress -Activity $($action+$([string]$inputFileName))`
-				   -Status $([string]$show_pcnt+"% Complete")`
-				   -PercentComplete $($act_pcnt * 10)
-}
