@@ -16,9 +16,8 @@
   
 
   ## Dependencies
-  * Certutil.exe
   * KeyCipher_stream_encrypter
-  * base64.py
+  * base64.exe
  
   ## Release Notes
    Version 0.0.1 only supports encryption of files less than 80 Mb of any format and type i.e all images formats, all video formats ,pem , exe etc. This is due to the limitation of the tool used to encode files (```Certutil.exe```). Future versions will however support encryption of any size of file
