@@ -23,7 +23,7 @@ SHELL ["pwsh", "-Command"]
 RUN mkdir -p ./etc/input ./etc/output
 
  
-# Installing python 2.7  
+# Installing python 2.7   
 SHELL ["pwsh", "-Command"]
 RUN $ProgressPreference = "SilentlyContinue"; $ErrorPreference = "Stop";`
     apt update;`

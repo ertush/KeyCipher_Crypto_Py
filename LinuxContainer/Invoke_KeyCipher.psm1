@@ -80,7 +80,8 @@ function Invoke-KeyCipher(){
 		[Alias('DirectoryName')]
 		[String] 
 		$outFilePath = $(
-						[string]$(Join-Path /tmp $($(@($inFilePath.split('/'))[@($inFilePath.split('/')).count - 1])).split('.')[0])
+						#[string]$(Join-Path /tmp $($(@($inFilePath.split('/'))[@($inFilePath.split('/')).count - 1])).split('.')[0])
+						$("./etc/output");
 						),
 
 		[parameter(position = 5, mandatory = $false)]
@@ -92,7 +93,7 @@ function Invoke-KeyCipher(){
 	)
 
 	begin {
-
+		
 		$ErrorActionPreference = "Silently Continue"
 
 		# Setting OutFilePath param
@@ -131,11 +132,13 @@ function Invoke-KeyCipher(){
 		$possibleEncipherPath = $(Join-path /tmp/$($inputFileName.split('.')[0]) $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))
 		
 		if(Test-Path $possibleEncipherPath){
-			$encipherFilePath = $(Join-path /tmp/$($inputFileName.split('.')[0]) $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt))) 
+			$encipherFilePath = $(Join-path /tmp/$($inputFileName.split('.')[0]) $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)))
+			
 		}
 		else 
 		{
 			$encipherFilePath = $(Join-path /tmp/$($inputFileName.split('.')[0]) $inputFileName.replace($inFileExt, $('enc.')+$inFileExt)) 
+			
 		}
 		
 		$decipherFilePath = $(Join-path /tmp/$($inputFileName.split('.')[0]) "Deciphered.dec") 	
@@ -262,7 +265,7 @@ function base64Decode()
 		{  
 			# Decoded as a line
 
-			 base64util decode $decipherFilePath $base64DecodeFilePath | Out-Null
+			base64util decode $decipherFilePath $base64DecodeFilePath | Out-Null
 			 
 			# Checking whether base64 was succesfull
 
@@ -301,7 +304,6 @@ function base64Decode()
 
 function encipherFile()
 {
-
 	$isBase64EncodeFilePath = $(Test-Path $base64EncodeFilePath) 
 
 	if($isBase64EncodeFilePath){
@@ -342,10 +344,13 @@ function encipherFile()
 					$($enc_line+$unencryptedLine) >  $($encipherFilePath.Replace('enc', $pt_ext));
 				} 
 				
-			
 				Write-host "[+] Verifying and Saving Encrypted File..." -ForegroundColor Gray
 				if(Test-Path $base64EncodeFilePath){Remove-Item $base64EncodeFilePath}
-				if(Test-Path $($encipherFilePath.Replace('enc', $pt_ext))){Copy-Item $($encipherFilePath.Replace('enc', $pt_ext)) $outFilePath}
+
+				if(Test-Path $($encipherFilePath.Replace('enc', $pt_ext))){
+					Copy-Item $($encipherFilePath.Replace('enc', $pt_ext)) $outFilePath
+					Remove-Item $inFilePath
+				}
 		
 			}
 			else 
@@ -366,7 +371,10 @@ function encipherFile()
 
 				Write-host "[+] Verifying and Saving Encrypted File..." -ForegroundColor Gray
 			
-				if(Test-Path $encipherFilePath){Copy-Item $encipherFilePath $outFilePath}
+				if(Test-Path $encipherFilePath){
+					Copy-Item $encipherFilePath $outFilePath
+					Remove-Item $inFilePath
+				}
 			}
 		}
 		else
@@ -382,6 +390,14 @@ function encipherFile()
 }
 
 function decipherFile(){
+
+	if (Test-Path $(Join-path "./etc/input" $inputFileName.replace($inFileExt, $('enc.')+$inFileExt))){
+		$encipherFilePath = $(Join-path "./etc/input" $inputFileName.replace($inFileExt, $('enc.')+$inFileExt));
+	}
+	else
+	{
+		$encipherFilePath = $(Join-path "./etc/input" $inputFileName.replace($inFileExt, $($($pt_ext+'.')+$inFileExt)));
+	}
 
 	$isEncipherFilePath = $(Test-Path $encipherFilePath)
 		
