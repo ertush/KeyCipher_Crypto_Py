@@ -62,7 +62,7 @@ function Invoke-KeyCipher(){
 		[parameter(position = 1, mandatory = $true)]
 		[String] $mode,
 
-		[parameter(position = 2, mandatory = $true)]
+docke		[parameter(position = 2, mandatory = $true)]
 		[String] $key,
 
 		[parameter(position = 3, 
