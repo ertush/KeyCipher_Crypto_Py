@@ -52,9 +52,5 @@ RUN mv ./base64util.go ./go/src/base64;`
     go get -v github.com/spf13/cobra;`
     go build /module/go/src/base64/base64util.go
 
-#Launching python simple server
-# SHELL ["pwsh", "-Command"]
-# RUN cd /module/etc/;`
-#     Start-Job -Name simple_http_server -ScriptBlock {python -m SimpleHTTPServer} | Out-Null;
 
 ENTRYPOINT ["pwsh", "-Command", "Import-Module", "./Invoke_KeyCipher.psm1;", "Invoke-KeyCipher"]
