@@ -174,7 +174,6 @@ function Invoke-KeyCipher(){
 			}
 		}
 		 
-		if($($mode -ne "help") -or $($mode -ne "examples")){
 		# Instantiating other constants
 		$base64EncodeFilePath = $(Join-path /tmp/$($inputFileName.split('.')[0]) "Encoded.bs64enc") 
 		$bsDecodeName = $inputFileName.replace($inFileExt, $($("dec64.")+$inFileExt))
@@ -205,7 +204,6 @@ function Invoke-KeyCipher(){
 		# Setting and testing the base64util path
 		$isBase64Util = $(Test-Path $(Join-Path $moduleInstallationPath 'base64util'))
 		Set-Alias base64util $(Join-Path $moduleInstallationPath 'base64util')
-	}
 	}
 
 	process

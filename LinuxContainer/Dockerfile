@@ -20,7 +20,10 @@ COPY ./Invoke_KeyCipher.psd1 .
 
 # creating input and output dirs
 SHELL ["pwsh", "-Command"]
-RUN mkdir -p ./etc/input ./etc/output
+RUN mkdir -p ./etc/input ./etc/output`
+    && mkdir -p /tmp/KeyCipher`
+    && touch /tmp/KeyCipher/KeyCipher.log`
+    && chmod 777 /tmp/KeyCipher/KeyCipher.log
 
  
 # Installing python 2.7   
